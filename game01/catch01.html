@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Catch Game</title>
+	<style>
+		#game-screen {
+			width: 400px;
+			height: 600px;
+			border: 1px solid black;
+			position: relative;
+		}
+		#player {
+			width: 50px;
+			height: 50px;
+			background-color: blue;
+			position: absolute;
+			bottom: 0;
+		}
+		#falling-item {
+			width: 50px;
+			height: 50px;
+			background-color: red;
+			position: absolute;
+			top: 0;
+		}
+	</style>
+</head>
+<body>
+	<div id="game-screen">
+		<div id="player"></div>
+		<div id="falling-item"></div>
+	</div>
+
+	<script>
+		var score = 0;
+		var speed = 5;
+		var fallingItem = document.getElementById('falling-item');
+		var player = document.getElementById('player');
+		var gameScreen = document.getElementById('game-screen');
+		var gameIsRunning = true;
+
+		function moveFallingItem() {
+			var x = Math.floor(Math.random() * (gameScreen.clientWidth - fallingItem.clientWidth));
+			fallingItem.style.left = x + 'px';
+			var fallAnimation = fallingItem.animate([
+				{ top: '0px' },
+				{ top: (gameScreen.clientHeight - fallingItem.clientHeight) + 'px' }
+			], {
+				duration: speed * 1000,
+				easing: 'linear',
+				iterations: Infinity
+			});
+			fallAnimation.play();
+		}
+
+		function updateScore() {
+			score++;
+			document.getElementById('score').innerHTML = 'Score: ' + score;
+		}
+
+		function gameOver() {
+			gameIsRunning = false;
+			alert('Game Over! Your score is ' + score);
+			location.reload();
+		}
+
+		function checkCollision() {
+			var playerRect = player.getBoundingClientRect();
+			var itemRect = fallingItem.getBoundingClientRect();
+			if (playerRect.bottom >= itemRect.top && 
+				playerRect.right >= itemRect.left &&
+				playerRect.left <= itemRect.right) {
+				updateScore();
+				speed += 0.5;
+				moveFallingItem();
+			} else if (itemRect.bottom >= gameScreen.clientHeight) {
+				gameOver();
+			}
+		}
+
+		document.addEventListener('mousemove', function(e) {
+			if (gameIsRunning) {
+				player.style.left = e.pageX - gameScreen.offsetLeft - (player.clientWidth / 2) + 'px';
+			}
+		});
+
+		moveFallingItem();
+		setInterval(checkCollision, 10);
+	</script>
+
+	<p id="score">Score: 0</p>
+</body>
+</html>
