@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Catch Game</title>
+	<title>Falling Object Game</title>
 	<style>
-		#game-screen {
+		#container {
 			width: 400px;
-			height: 600px;
-			border: 1px solid black;
+			height: 400px;
 			position: relative;
+			border: 1px solid black;
 		}
+
 		#player {
 			width: 50px;
 			height: 50px;
@@ -16,78 +17,99 @@
 			position: absolute;
 			bottom: 0;
 		}
-		#falling-item {
-			width: 50px;
-			height: 50px;
+
+		.falling-object {
+			width: 30px;
+			height: 30px;
 			background-color: red;
 			position: absolute;
-			top: 0;
 		}
 	</style>
 </head>
 <body>
-	<div id="game-screen">
+	<div id="container">
 		<div id="player"></div>
-		<div id="falling-item"></div>
 	</div>
 
 	<script>
-		var score = 0;
-		var speed = 5;
-		var fallingItem = document.getElementById('falling-item');
-		var player = document.getElementById('player');
-		var gameScreen = document.getElementById('game-screen');
-		var gameIsRunning = true;
+		let score = 0;
+		let isPlaying = true;
 
-		function moveFallingItem() {
-			var x = Math.floor(Math.random() * (gameScreen.clientWidth - fallingItem.clientWidth));
-			fallingItem.style.left = x + 'px';
-			var fallAnimation = fallingItem.animate([
-				{ top: '0px' },
-				{ top: (gameScreen.clientHeight - fallingItem.clientHeight) + 'px' }
+		const container = document.querySelector('#container');
+		const player = document.querySelector('#player');
+
+		function createFallingObject() {
+			const object = document.createElement('div');
+			object.classList.add('falling-object');
+			object.style.top = 0;
+			object.style.left = Math.floor(Math.random() * container.clientWidth) + 'px';
+			container.appendChild(object);
+
+			moveFallingObject(object);
+		}
+
+		function moveFallingObject(object) {
+			const duration = Math.floor(Math.random() * 3000) + 1000;
+			const distance = container.clientHeight - object.offsetTop - object.clientHeight;
+
+			object.animate([
+				{ transform: `translateY(0)` },
+				{ transform: `translateY(${distance}px)` },
 			], {
-				duration: speed * 1000,
-				easing: 'linear',
-				iterations: Infinity
-			});
-			fallAnimation.play();
+				duration: duration,
+			}).onfinish = () => {
+				if (isPlaying) {
+					object.remove();
+					createFallingObject();
+				}
+			};
 		}
 
-		function updateScore() {
-			score++;
-			document.getElementById('score').innerHTML = 'Score: ' + score;
-		}
-
-		function gameOver() {
-			gameIsRunning = false;
-			alert('Game Over! Your score is ' + score);
-			location.reload();
-		}
-
-		function checkCollision() {
-			var playerRect = player.getBoundingClientRect();
-			var itemRect = fallingItem.getBoundingClientRect();
-			if (playerRect.bottom >= itemRect.top && 
-				playerRect.right >= itemRect.left &&
-				playerRect.left <= itemRect.right) {
-				updateScore();
-				speed += 0.5;
-				moveFallingItem();
-			} else if (itemRect.bottom >= gameScreen.clientHeight) {
-				gameOver();
-			}
-		}
-
-		document.addEventListener('mousemove', function(e) {
-			if (gameIsRunning) {
-				player.style.left = e.pageX - gameScreen.offsetLeft - (player.clientWidth / 2) + 'px';
+		document.addEventListener('mousemove', e => {
+			if (isPlaying) {
+				const x = e.clientX - container.offsetLeft - player.offsetWidth / 2;
+				player.style.left = Math.min(container.clientWidth - player.offsetWidth, Math.max(0, x)) + 'px';
 			}
 		});
 
-		moveFallingItem();
-		setInterval(checkCollision, 10);
+		function checkCollision() {
+			const objects = document.querySelectorAll('.falling-object');
+			objects.forEach(object => {
+				if (isColliding(player, object)) {
+					object.remove();
+					score++;
+					updateScore();
+				}
+			});
+		}
+
+		function isColliding(a, b) {
+			const aRect = a.getBoundingClientRect();
+			const bRect = b.getBoundingClientRect();
+
+			return !(
+				aRect.bottom < bRect.top ||
+				aRect.top > bRect.bottom ||
+				aRect.right < bRect.left ||
+				aRect.left > bRect.right
+			);
+		}
+
+		function updateScore() {
+			document.querySelector('#score').textContent = `Score: ${score}`;
+		}
+
+		function gameover() {
+			isPlaying = false;
+			alert(`Game over! Your score is ${score}.`);
+			location.reload();
+		}
+
+		updateScore();
+		createFallingObject();
+		setInterval(checkCollision, 100);
 	</script>
 
-	<p id="score">Score: 0</p>
+	<p id="score"></p>
 </body>
 </html>
