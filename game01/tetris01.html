@@ -1,235 +1,110 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Tetris</title>
-  <style>
-    #game-board {
-      width: 250px;
-      height: 500px;
-      border: 1px solid black;
-      margin: 10px auto;
-      position: relative;
-    }
-    .cell {
-      width: 25px;
-      height: 25px;
-      border: 1px solid gray;
-      position: absolute;
-    }
-    .piece {
-      background-color: red;
-    }
-  </style>
-</head>
-<body>
-  <div id="game-board"></div>
-  <script>
-    // ゲームの定数
-    const ROWS = 20;
-    const COLS = 10;
-
-    // ゲームの状態
-    let board = [];
-
-    // ピースの定義
-    const PIECES = [
-      [
-        [1, 1],
-        [1, 1]
-      ],
-      [
-        [1, 1, 1, 1]
-      ],
-      [
-        [0, 1, 0],
-        [1, 1, 1]
-      ],
-      [
-        [0, 1, 1],
-        [1, 1, 0]
-      ],
-      [
-        [1, 1, 0],
-        [0, 1, 1]
-      ],
-      [
-        [1, 0, 0],
-        [1, 1, 1]
-      ],
-      [
-        [0, 0, 1],
-        [1, 1, 1]
-      ]
-    ];
-
-    // ゲームの初期化
-    function init() {
-      // 盤面を初期化
-      for (let i = 0; i < ROWS; i++) {
-        board[i] = new Array(COLS).fill(0);
+  <head>
+    <meta charset="UTF-8" />
+    <title>テトリス</title>
+    <style>
+      body {
+        background: #ddf5ff;
       }
-    }
-
-    // 盤面を描画
-    function drawBoard() {
-      const boardEl = document.querySelector('#game-board');
-      boardEl.innerHTML = '';
-
-      for (let i = 0; i < ROWS; i++) {
-        for (let j = 0; j < COLS; j++) {
-          const cellEl = document.createElement('div');
-          cellEl.classList.add('cell');
-          if (board[i][j] === 1) {
-            cellEl.classList.add('piece');
-          }
-          cellEl.style.left = j * 25 + 'px';
-          cellEl.style.top = i * 25 + 'px';
-          boardEl.appendChild(cellEl);
-        }
+      #container {
+        margin: 0 auto;
       }
-    }
+    </style>
+  </head>
+  <body onload="init()">
+    <div id="container">
+      <canvas id="cvs"></canvas>
+    </div>
+    <script>
+      //ブロック1マスの大きさ
+      const blockSize = 30;
+      //ボードサイズ
+      const boardRow = 20;
+      const boardCol = 10;
+      //キャンバスの取得
+      const cvs = document.getElementById('cvs');
+      //2dコンテキストを取得
+      const ctx = cvs.getContext('2d');
+      //キャンバスサイズ
+      const canvasW = blockSize * boardCol;
+      const canvasH = blockSize * boardRow;
+      cvs.width = canvasW;
+      cvs.height = canvasH;
+      //コンテナの設定
+      const container = document.getElementById('container');
+      container.style.width = canvasW + 'px';
 
-    // ピースを描画
-    function drawPiece(piece, row, col) {
-      for (let i = 0; i < piece.length; i++) {
-        for (let j = 0; j < piece[i].length; j++) {
-          if (piece[i][j] === 1) {
-            board[row + i][col + j] = 1;
-          }
-        }
-      }
-    }
+      //tetの1辺の大きさ
+      const tetSize = 4;
+      //T型のtet
+      let tet = [
+        [0, 0, 0, 0],
+        [0, 1, 0, 0],
+        [1, 1, 1, 0],
+        [0, 0, 0, 0],
+      ];
 
-    // ピースを移動
-    function movePiece(piece, row, col) {
-      // ピースを描画
-      drawPiece(piece, row, col);
+      //テトリミノのオフセット量(何マス分ずれているか)
+      let offsetX = 0;
+      let offsetY = 0;
 
-      // 盤面を描画
-      drawBoard();
-    }
+      //描画処理
+      const draw = () => {
+        //塗りに黒を設定
+        ctx.fillStyle = '#000';
+        //キャンバスを塗りつぶす
+        ctx.fillRect(0, 0, canvasW, canvasH);
 
-    // ピースを回転
-    function rotatePiece(piece) {
-      const newPiece = [];
-      for (let i = 0; i < piece[0].length; i++) {
-        newPiece[i] = [];
-        for (let j = piece.length - 1; j >= 0; j--) {
-          newPiece[i][piece.length - 1 - j] = piece[j][i];
-        }
-      }
-      return newPiece;
-    }
+        //塗りに赤を設定
+        //ctx.fillStyle = '#f00';
+        //x座標50,y座標50の場所に幅30,縦30の四角を描画
+        //ctx.fillRect(150, 150, blockSize, blockSize);
 
-    // ピースを落下させる
-    function dropPiece(piece, row, col) {
-      while (canMoveDown(piece, row, col)) {
-        row++;
-      }
-      movePiece(piece, row, col);
-    }
-
-    // ピースが下に移動できるかどうかを判定
-    function canMoveDown(piece, row, col) {
-      for (let i = piece.length - 1; i >= 0; i--) {
-        for (let j = 0; j < piece[i].length; j++) {
-          if (piece[i][j] === 1) {
-            if (row + i === ROWS - 1 || board[row + i + 1][col + j] === 1) {
-              return false;
+        //テトリミノの描画
+        for (let y = 0; y < tetSize; y++) {
+          for (let x = 0; x < tetSize; x++) {
+            if (tet[y][x]) {
+              drawBlock(offsetX+x,offsetY+y);
             }
           }
         }
-      }
-      return true;
-    }
+      };
+      //ブロック一つを描画する
+      const drawBlock = (x, y) => {
+        let px = x * blockSize;
+        let py = y * blockSize;
+        //塗りを設定
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(px, py, blockSize, blockSize);
+        //線を設定
+        ctx.strokeStyle = 'black';
+        //線を描画
+        ctx.strokeRect(px, py, blockSize, blockSize);
+      };
 
-    // ピースを左に移動させる
-    function moveLeft(piece, row, col) {
-      if (canMoveLeft(piece, row, col)) {
-        movePiece(piece, row, col - 1);
-      }
-    }
-
-    // ピースが左に移動できるかどうかを判定
-    function canMoveLeft(piece, row, col) {
-      for (let i = 0; i < piece.length; i++) {
-        for (let j = 0; j < piece[i].length; j++) {
-          if (piece[i][j] === 1) {
-            if (col + j === 0 || board[row + i][col + j - 1] === 1) {
-              return false;
-            }
-          }
-        }
-      }
-      return true;
-    }
-
-    // ピースを右に移動させる
-    function moveRight(piece, row, col) {
-      if (canMoveRight(piece, row, col)) {
-        movePiece(piece, row, col + 1);
-      }
-    }
-
-    // ピースが右に移動できるかどうかを判定
-    function canMoveRight(piece, row, col) {
-      for (let i = 0; i < piece.length; i++) {
-        for (let j = 0; j < piece[i].length; j++) {
-          if (piece[i][j] === 1) {
-            if (col + j === COLS - 1 || board[row + i][col + j + 1] === 1) {
-              return false;
-            }
-          }
-        }
-      }
-      return true;
-    }
-
-    // ゲームを開始
-    function startGame() {
-      init();
-      drawBoard();
-      const piece = PIECES[Math.floor(Math.random() * PIECES.length)];
-      let row = 0;
-      let col = Math.floor((COLS - piece[0].length) / 2);
-      drawPiece(piece, row, col);
-      drawBoard();
-
-      // キー入力に応じてピースを操作
-      document.addEventListener('keydown', (event) => {
-        switch (event.keyCode) {
-          case 37: // 左矢印キー
-            moveLeft(piece, row, col);
+      document.onkeydown = (e) => {
+        switch (e.keyCode) {
+          case 37: //左
+            offsetX--;
             break;
-          case 38: // 上矢印キー
-            piece = rotatePiece(piece);
-            drawPiece(piece, row, col);
-            drawBoard();
+          case 38: //上
+            offsetY--;
             break;
-          case 39: // 右矢印キー
-            moveRight(piece, row, col);
+          case 39: //右
+            offsetX++;
             break;
-          case 40: // 下矢印キー
-            if (canMoveDown(piece, row, col)) {
-              row++;
-              drawPiece(piece, row, col);
-              drawBoard();
-            } else {
-              dropPiece(piece, row, col);
-              piece = PIECES[Math.floor(Math.random() * PIECES.length)];
-              row = 0;
-              col = Math.floor((COLS - piece[0].length) / 2);
-              drawPiece(piece, row, col);
-              drawBoard();
-            }
+          case 40: //下
+            offsetY++;
             break;
         }
-      });
-    }
-
-    // ゲームを開始
-    startGame();
-  </script>
-</body>
+        draw();
+      };
+      //
+      //初期化処理
+      const init = () => {
+        draw();
+      };
+    </script>
+  </body>
 </html>
