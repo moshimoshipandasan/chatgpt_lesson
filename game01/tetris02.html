@@ -1,267 +1,174 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Tetris</title>
-  <style>
-    #game-board {
-      width: 250px;
-      height: 500px;
-      border: 1px solid black;
-      margin: 10px auto;
-      position: relative;
-    }
-    .cell {
-      width: 25px;
-      height: 25px;
-      border: 1px solid gray;
-      position: absolute;
-    }
-    .piece {
-      background-color: red;
-    }
-  </style>
-</head>
-<body>
-  <div id="game-board"></div>
-  <script>
-    // ゲームの定数
-    const ROWS = 20;
-    const COLS = 10;
+<script>
+  //落下サイクル(小さい方が速い)
+   const speed = 300;
+   //ブロック1マスの大きさ
+   const blockSize = 30;
+   //ボードサイズ
+   const boardRow = 20;
+   const boardCol = 10;
+   //キャンバスの取得
+   const cvs = document.getElementById('cvs');
+   //2dコンテキストを取得
+   const ctx = cvs.getContext('2d');
+   //キャンバスサイズ
+   const canvasW = blockSize * boardCol;
+   const canvasH = blockSize * boardRow;
+   cvs.width = canvasW;
+   cvs.height = canvasH;
+   //コンテナの設定
+   const container = document.getElementById('container');
+   container.style.width = canvasW + 'px';
 
-    // ゲームの状態
-    let board = [];
+   //tetの1辺の大きさ
+   const tetSize = 4;
+   //T型のtet
+   let tet = [
+     [0, 0, 0, 0],
+     [0, 1, 0, 0],
+     [1, 1, 1, 0],
+     [0, 0, 0, 0],
+   ];
 
-    // ピースの定義
-    const PIECES = [
-      [
-        [1, 1],
-        [1, 1]
-      ],
-      [
-        [1, 1, 1, 1]
-      ],
-      [
-        [0, 1, 0],
-        [1, 1, 1]
-      ],
-      [
-        [0, 1, 1],
-        [1, 1, 0]
-      ],
-      [
-        [1, 1, 0],
-        [0, 1, 1]
-      ],
-      [
-        [1, 0, 0],
-        [1, 1, 1]
-      ],
-      [
-        [0, 0, 1],
-        [1, 1, 1]
-      ]
-    ];
+   //テトリミノのオフセット量(何マス分ずれているか)
+   let offsetX = 0;
+   let offsetY = 0;
 
-    // ゲームの初期化
-    function init() {
-      // 盤面を初期化
-      for (let i = 0; i < ROWS; i++) {
-        board[i] = new Array(COLS).fill(0);
-      }
-    }
+   //ボード本体
+   const board = [];
 
-    // 盤面を描画
-    function drawBoard() {
-      const boardEl = document.querySelector('#game-board');
-      boardEl.innerHTML = '';
+   //タイマーID
+   let timerId = NaN;
 
-      for (let i = 0; i < ROWS; i++) {
-        for (let j = 0; j < COLS; j++) {
-          const cellEl = document.createElement('div');
-          cellEl.classList.add('cell');
-          if (board[i][j] === 1) {
-            cellEl.classList.add('piece');
-          }
-          cellEl.style.left = j * 25 + 'px';
-          cellEl.style.top = i * 25 + 'px';
-          boardEl.appendChild(cellEl);
-        }
-      }
-    }
+   //描画処理
+   const draw = () => {
+     //塗りに黒を設定
+     ctx.fillStyle = '#000';
+     //キャンバスを塗りつぶす
+     ctx.fillRect(0, 0, canvasW, canvasH);
 
-    // ピースを描画
-    function drawPiece(piece, row, col) {
-      for (let i = 0; i < piece.length; i++) {
-        for (let j = 0; j < piece[i].length; j++) {
-          if (piece[i][j] === 1) {
-            board[row + i][col + j] = 1;
-          }
-        }
-      }
-    }
+     //ボードに存在しているブロックを塗る
+     for (let y = 0; y < boardRow; y++) {
+       for (let x = 0; x < boardCol; x++) {
+         if (board[y][x]) {
+           drawBlock(x, y);
+         }
+       }
+     }
 
-    // ピースを移動
-    function movePiece(piece, row, col) {
-      // ピースを消去
-      for (let i = 0; i < piece.length; i++) {
-        for (let j = 0; j < piece[i].length; j++) {
-          if (piece[i][j] === 1) {
-            board[row + i][col + j] = 0;
-          }
-        }
-      }
+     //テトリミノの描画
+     for (let y = 0; y < tetSize; y++) {
+       for (let x = 0; x < tetSize; x++) {
+         if (tet[y][x]) {
+           drawBlock(offsetX + x, offsetY + y);
+         }
+       }
+     }
+   };
+   //ブロック一つを描画する
+   const drawBlock = (x, y) => {
+     let px = x * blockSize;
+     let py = y * blockSize;
+     //塗りを設定
+     ctx.fillStyle = '#f00';
+     ctx.fillRect(px, py, blockSize, blockSize);
+     //線を設定
+     ctx.strokeStyle = 'black';
+     //線を描画
+     ctx.strokeRect(px, py, blockSize, blockSize);
+   };
 
-      // ピースを描画
-      for (let i = 0; i < piece.length; i++) {
-        for (let j = 0; j < piece[i].length; j++) {
-          if (piece[i][j] === 1) {
-            board[row + i][col + j] = 1;
-          }
-        }
-      }
+   //指定された方向に移動できるか？(x移動量,y移動量,対象tet)
+   const canMove = (dx, dy, nowTet = tet) => {
+     for (let y = 0; y < tetSize; y++) {
+       for (let x = 0; x < tetSize; x++) {
+         //その場所にブロックがあれば
+         if (nowTet[y][x]) {
+           //ボード座標に変換（offsetX(-2~8)+x(0~3)+移動量(-1~1)
+           let nx = offsetX + x + dx;
+           let ny = offsetY + y + dy;
+           if (
+             //調査する座標がボード外だったらできない
+             ny < 0 ||
+             nx < 0 ||
+             ny >= boardRow ||
+             nx >= boardCol ||
+             //移動したいボード上の場所にすでに存在してたらできない
+             board[ny][nx]
+           ) {
+             //移動できない
+             return false;
+           }
+         }
+       }
+     }
+     //移動できる
+     return true;
+   };
+   //回転
+   const createRotateTet = () => {
+     //新しいtetを作る
+     let newTet = [];
+     for (let y = 0; y < tetSize; y++) {
+       newTet[y] = [];
+       for (let x = 0; x < tetSize; x++) {
+         //時計回りに90度回転させる
+         newTet[y][x] = tet[tetSize - 1 - x][y];
+       }
+     }
+     return newTet;
+   };
 
-      // 盤面を描画
-      drawBoard();
-    }
+   document.onkeydown = (e) => {
+     switch (e.keyCode) {
+       case 37: //左
+         if (canMove(-1, 0)) offsetX--;
+         break;
+       case 38: //上
+         if (canMove(0, -1)) offsetY--;
+         break;
+       case 39: //右
+         if (canMove(1, 0)) offsetX++;
+         break;
+       case 40: //下
+         if (canMove(0, 1)) offsetY++;
+         break;
+       case 32: //space
+         let newTet = createRotateTet();
+         if (canMove(0, 0, newTet)) {
+           tet = newTet;
+         }
+     }
+     draw();
+   };
+   //繰り返し行われる落下処理
+   const dropTet = () => {
+     //下に行けたら
+     if (canMove(0, 1)) {
+       //下に行く
+       offsetY++;
+     } else {
+     }
+     draw();
+   };
+   const initStartPos = () => {
+     offsetX = boardCol / 2 - tetSize / 2;
+     offsetY = 0;
+   };
+   //初期化処理
+   const init = () => {
+     //ボード(20*10を0埋め)
+     for (let y = 0; y < boardRow; y++) {
+       board[y] = [];
+       for (let x = 0; x < boardCol; x++) {
+         board[y][x] = 0;
+       }
+     }
+     //テスト用
+     //board[3][5]=1;
+     initStartPos();
+    //繰り返し処理
+     timerId=setInterval(dropTet,speed);
 
-    // ピースを回転
-    function rotatePiece(piece) {
-      const newPiece = [];
-      for (let i = 0; i < piece[0].length; i++) {
-        newPiece[i] = [];
-        for (let j = piece.length - 1; j >= 0; j--) {
-          newPiece[i][piece.length - 1 - j] = piece[j][i];
-        }
-      }
-      return newPiece;
-    }
-
-    // ピースを落下させる
-    function dropPiece(piece, row, col) {
-      while (canMoveDown(piece, row, col)) {
-        row++;
-      }
-      movePiece(piece, row, col);
-    }
-
-    // ピースが下に移動できるかどうかを判定
-    function canMoveDown(piece, row, col) {
-      for (let i = piece.length - 1; i >= 0; i--) {
-        for (let j = 0; j < piece[i].length; j++) {
-          if (piece[i][j] === 1) {
-            if (row + i === ROWS - 1 || board[row + i + 1][col + j] === 1) {
-              return false;
-            }
-          }
-        }
-      }
-      return true;
-    }
-
-    // ピースを左に移動させる
-    function moveLeft(piece, row, col) {
-      if (canMoveLeft(piece, row, col)) {
-        movePiece(piece, row, col - 1);
-      }
-    }
-
-    // ピースが左に移動できるかどうかを判定
-    function canMoveLeft(piece, row, col) {
-      for (let i = 0; i < piece.length; i++) {
-        for (let j = 0; j < piece[i].length; j++) {
-          if (piece[i][j] === 1) {
-            if (col + j === 0 || board[row + i][col + j - 1] === 1) {
-              return false;
-            }
-          }
-        }
-      }
-      return true;
-    }
-
-    // ピースを右に移動させる
-    function moveRight(piece, row, col) {
-      if (canMoveRight(piece, row, col)) {
-        movePiece(piece, row, col + 1);
-      }
-    }
-
-    // ピースが右に移動できるかどうかを判定
-    function canMoveRight(piece, row, col) {
-      for (let i = 0; i < piece.length; i++) {
-        for (let j = piece[i].length - 1; j >= 0; j--) {
-          if (piece[i][j] === 1) {
-            if (col + j === COLS - 1 || board[row + i][col + j + 1] === 1) {
-              return false;
-            }
-          }
-        }
-      }
-      return true;
-    }
-
-    // ゲームを開始
-    function startGame() {
-      init();
-      drawBoard();
-
-      // 最初のピースを生成
-      let piece = PIECES[Math.floor(Math.random() * PIECES.length)];
-
-      // ピースを初期位置に配置
-      let row = 0;
-      let col = Math.floor((COLS - piece[0].length) / 2);
-      drawPiece(piece, row, col);
-      drawBoard();
-
-      // キー入力に応じてピースを操作
-      document.addEventListener('keydown', (event) => {
-        switch (event.keyCode) {
-          case 37: // 左矢印キー
-            moveLeft(piece, row, col);
-            break;
-          case 38: // 上矢印キー
-            piece = rotatePiece(piece);
-            movePiece(piece, row, col);
-            break;
-          case 39: // 右矢印キー
-            moveRight(piece, row, col);
-            break;
-          case 40: // 下矢印キー
-            if (canMoveDown(piece, row, col)) {
-              row++;
-              movePiece(piece, row, col);
-            } else {
-              dropPiece(piece, row, col);
-              piece = PIECES[Math.floor(Math.random() * PIECES.length)];
-              row = 0;
-              col = Math.floor((COLS - piece[0].length) / 2);
-              drawPiece(piece, row, col);
-              drawBoard();
-            }
-            break;
-        }
-      });
-
-      // 1秒ごとにピースを1マス下に移動
-      setInterval(() => {
-        if (canMoveDown(piece, row, col)) {
-          row++;
-          movePiece(piece, row, col);
-        } else {
-          dropPiece(piece, row, col);
-          piece = PIECES[Math.floor(Math.random() * PIECES.length)];
-          row = 0;
-          col = Math.floor((COLS - piece[0].length) / 2);
-          drawPiece(piece, row, col);
-          drawBoard();
-        }
-      }, 1000);
-    }
-
-    // ゲームを開始
-    startGame();
-  </script>
-</body>
-</html>
+     draw();
+   };
+ </script>
