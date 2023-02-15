@@ -70,12 +70,12 @@
           }
         }
       };
-      //ブロック一つを描画する
+      //ブロック一つを描画するdrawBlock関数を定義
       const drawBlock = (x, y) => {
         let px = x * blockSize;
         let py = y * blockSize;
-        //塗りを設定
-        ctx.fillStyle = '#f00'; //赤色
+        //塗りを赤に設定
+        ctx.fillStyle = '#f00';
         ctx.fillRect(px, py, blockSize, blockSize);
         //線を設定
         ctx.strokeStyle = 'black';
