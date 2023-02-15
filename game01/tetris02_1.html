@@ -1,4 +1,13 @@
-<!--https://joytas.net/programming/tetris2-->
+<!--
+  https://joytas.net/programming/tetris2
+  # 今回は次を実装します。
+  * 移動の制限 canMove
+  * 回転
+    1.時計回りに90度回転させたテトリミノの作成 createRotateTet
+  * 回転の制限がかかるケース
+    1. 調査する座標がボード外
+    2. 移動したいボード上の場所にすでに存在している
+-->
 <!DOCTYPE html>
 <html>
   <head>
@@ -95,7 +104,7 @@
          //線を描画
          ctx.strokeRect(px, py, blockSize, blockSize);
        };
-    
+       //移動の制限(canMove関数の実装)
        //指定された方向に移動できるか？(x移動量,y移動量,対象tet)
        const canMove = (dx, dy, nowTet = tet) => {
          for (let y = 0; y < tetSize; y++) {
