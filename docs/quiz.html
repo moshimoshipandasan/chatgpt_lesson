@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>戦国時代クイズゲーム</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div id="game">
+		<h1>戦国時代クイズゲーム</h1>
+		<div class="question">
+			<p id="question"></p>
+			<div id="choices"></div>
+			<button id="submit">回答する</button>
+		</div>
+		<div class="score" id="score"></div>
+		<div class="menu">
+			<a href="#" onclick="location.reload()">再プレイする</a>
+		</div>
+	</div>
+	
+	<script>
+		// ゲーム用の問題と回答の配列
+		const quiz = [
+			{
+				question: '織田信長が本能寺で討たれたのは何年か？',
+				choices: ['1572年', '1582年', '1592年'],
+				answer: 1
+			},
+			{
+				question: '豊臣秀吉が朝鮮出兵を行ったのは何年か？',
+				choices: ['1592年', '1600年', '1614年'],
+				answer: 0
+			},
+			{
+				question: '徳川家康が江戸幕府を開いたのは何年か？',
+				choices: ['1603年', '1615年', '1620年'],
+				answer: 0
+			},
+			{
+				question: '関ヶ原の戦いで勝利したのはどちらの勢力か？',
+				choices: ['徳川家康', '豊臣秀吉', '織田信長'],
+				answer: 0
+			},
+			{
+				question: '上杉謙信が没したのは何年か？',
+				choices: ['1571年', '1582年', '1598年'],
+				answer: 2
+			},
+			{
+				question: '武田信玄の嫡男は誰か？',
+				choices: ['武田勝頼', '武田信繁', '武田信虎'],
+				answer: 0
+			},
+			{
+				question: '明智光秀が本能寺の変を起こしたのは何年か？',
+				choices: ['1567年', '1577年', '1582年'],
+				answer: 2
+			},
+			{
+				question: '石田三成が西軍の総大将を務めた戦いは何か？',
+				choices: ['関ヶ原の戦い', '大坂の陣', '伏見の戦い'],
+				answer: 1
+			},
+			{
+				question: '徳川家康が京都を攻めた際に出された命令は何か？',
+				choices: ['天下布武', '譜代大名', '畿内平定'],
+				answer: 0
+			}
+		];
+		
+		// スコアの初期化
+		let score = 0;
+		
+		// 現在の問題
+		let currentQuestion;
+		
+		// 問題を表示する関数
+		function showQuestion() {
+			// ランダムに問題を選択する
+			const index = Math.floor(Math.random() * quiz.length);
+			currentQuestion = quiz[index];
+			
+			// 問題文をHTMLに表示する
+			const questionElement = document.getElementById('question');
+			questionElement.textContent = currentQuestion.question;
+			
+			// 回答選択肢をHTMLに表示する
+			const choicesElement = document.getElementById('choices');
+			choicesElement.innerHTML = '';
+			for (let i = 0; i < currentQuestion.choices.length; i++) {
+				const choice = currentQuestion.choices[i];
+				const radio = '<input type="radio" name="answer" value="' + i + '" class="radio">' + choice;
+				choicesElement.insertAdjacentHTML('beforeend', radio);
+			}
+			
+			// 問題を配列から削除する
+			quiz.splice(index, 1);
+		}
+		
+		// ユーザーの回答をチェックする関数
+		function checkAnswer() {
+			const answerElements = document.getElementsByName('answer');
+			for (let i = 0; i < answerElements.length; i++) {
+				if (answerElements[i].checked) {
+					const answer = parseInt(answerElements[i].value);
+					if (answer === currentQuestion.answer) {
+						score++;
+					}
+					break;
+				}
+			}
+		}
+		
+		// 次の問題を表示する関数
+		function nextQuestion() {
+			if (quiz.length === 0) {
+				// 全ての問題に回答したら、スコアを表示する
+				const scoreElement = document.getElementById('score');
+				scoreElement.textContent = '正解数は' + score + '問です！';
+			} else {
+				// 次の問題を表示する
+				showQuestion();
+			}
+		}
+		
+		// 回答送信ボタンのクリックイベントを設定する
+		const submitButton = document.getElementById('submit');
+		submitButton.addEventListener('click', function() {
+			checkAnswer();
+			nextQuestion();
+		});
+		
+		// 最初の問題を表示する
+		showQuestion();
+	</script>
+</body>
+</html>
