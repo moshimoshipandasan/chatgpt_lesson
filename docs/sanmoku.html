@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>三目並べ</title>
+  <style>
+    body {
+      background-color: black;
+    }
+
+    h1, h2, button {
+      color: white;
+    }
+
+    #board {
+      width: 300px;
+      height: 300px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .cell {
+      width: 90px;
+      height: 90px;
+      border: 2px solid white;
+      font-size: 72px;
+      text-align: center;
+      line-height: 72px;
+      cursor: pointer;
+    }
+
+    .o {
+      color: white;
+    }
+
+    .x {
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>三目並べ</h1>
+  <h2 id="turn">現在の手番: 〇</h2>
+  <div id="board">
+    <div class="row">
+      <div class="cell" id="0"></div>
+      <div class="cell" id="1"></div>
+      <div class="cell" id="2"></div>
+    </div>
+    <div class="row">
+      <div class="cell" id="3"></div>
+      <div class="cell" id="4"></div>
+      <div class="cell" id="5"></div>
+    </div>
+    <div class="row">
+      <div class="cell" id="6"></div>
+      <div class="cell" id="7"></div>
+      <div class="cell" id="8"></div>
+    </div>
+  </div>
+  <button id="reset-button">リセット</button>
+  <script>
+    const cells = document.querySelectorAll('.cell');
+    const turnDisplay = document.getElementById('turn');
+    const resetButton = document.getElementById('reset-button');
+
+    let currentPlayer = 'o';
+    let gameEnded = false;
+
+    const winningCombinations = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6]
+    ];
+
+    function handleCellClick(event) {
+      const cell = event.target;
+      if (cell.textContent || gameEnded) {
+        return;
+      }
+      cell.textContent = currentPlayer;
+      cell.classList.add(currentPlayer);
+      if (checkWin()) {
+        turnDisplay.textContent = `勝者: ${currentPlayer}`;
+        gameEnded = true;
+      } else if (checkTie()) {
+        turnDisplay.textContent = '引き分け';
+        gameEnded = true;
+      } else {
+        currentPlayer = currentPlayer === 'o' ? 'x' : 'o';
+        turnDisplay.textContent = `現在の手番: ${currentPlayer}`;
+      }
+    }
+
+    function checkWin() {
+      return winningCom
+binations.some(combination => {
+    return combination.every(index => {
+        return cells[index].classList.contains(currentPlayer);
+    });
+  });
+}
+
+function checkTie() {
+  return [...cells].every(cell => {
+    return cell.textContent;
+  });
+}
+
+function resetGame() {
+  cells.forEach(cell => {
+    cell.textContent = '';
+    cell.classList.remove('o', 'x');
+  });
+  currentPlayer = 'o';
+  gameEnded = false;
+  turnDisplay.textContent = `現在の手番: ${currentPlayer}`;
+}
+
+cells.forEach(cell => {
+  cell.addEventListener('click', handleCellClick);
+});
+
+resetButton.addEventListener('click', resetGame);
+  </script>
+</body>
+</html>
